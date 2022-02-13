@@ -23,7 +23,7 @@ setup(
         "linux"
     ],
     classifiers=[
-        "License :: OSI Approved :: BSD License",
+        "License :: OSI Approved :: PostgreSQL License",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "Intended Audience :: Information Technology",
