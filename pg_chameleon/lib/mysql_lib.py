@@ -271,16 +271,13 @@ class mysql_source(object):
             self.cursor_buffered.execute(sql_tables, (schema))
             table_list = [table["table_name"] for table in self.cursor_buffered.fetchall()]
             try:
-                limit_tables = self.limit_tables[schema]
-                if len(limit_tables) > 0:
-                    table_list = [table for table in table_list if table in limit_tables]
-            except KeyError:
-                pass
-            try:
-                skip_tables = self.skip_tables[schema]
-                if len(skip_tables) > 0:
-                    table_list = [table for table in table_list if table not in skip_tables]
-            except KeyError:
+                selected_tables = set(self.limit_tables[schema]) - set(self.skip_tables.get(schema,[]))
+                if selected_tables: # should restrict table_list
+                    table_list = [table for table in table_list if table in selected_tables]
+                # else: selected_tables is empty. use all tables in table_list
+            except KeyError as exc:
+                print("mysql_source.get_table_list method:")
+                print(exc)
                 pass
 
             self.schema_tables[schema] = table_list
@@ -834,9 +831,9 @@ class mysql_source(object):
                         #input("Press Enter to continue...")
                         self.logger.info("Adding constraint and indices to the destination table  %s.%s" %(destination_schema, table) )
                         self.pg_engine.create_idx_cons(destination_schema,table)
-                except:
+                except Exception as exc:
                     self.logger.info("Could not copy the table %s. Excluding it from the replica." %(table) )
-                    raise
+                    raise Exception from  exc
 
     def set_copy_max_memory(self):
         """
