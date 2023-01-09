@@ -1,6 +1,7 @@
 import time
 import sys
 import io
+from typing import TypeVar
 import pymysql
 import codecs
 import binascii
@@ -576,6 +577,11 @@ class mysql_source(object):
         self.cursor_buffered.execute(sql_master)
         master_status = self.cursor_buffered.fetchall()
         return master_status
+    T = TypeVar("T")
+    def convert_batch_data(self, csv_results:T, loading_schema:str, table:str, column_list:list[str])->T:
+        # check types here
+        breakpoint()
+        return csv_results
 
     def copy_data(self, schema, table):
         """
@@ -646,6 +652,7 @@ class mysql_source(object):
             if len(csv_results) == 0:
                 break
             # TODO: insert convert logic here
+            csv_results = self.convert_batch_data(csv_results, loading_schema, table, column_list)
             csv_data="\n".join(d[0] for d in csv_results )
 
             if self.copy_mode == 'direct':
@@ -1206,6 +1213,11 @@ class mysql_source(object):
                     dic_decoded[key] = self.__decode_dic_keys(value)
         return dic_decoded
 
+    def convert_row_data(self,row:dict, destination_schema:str, table_name:str, schema_row:list[str])->dict:
+        # check types here
+        breakpoint()
+        return row
+
     def __read_replica_stream(self, batch_data):
         """
         Stream the replica using the batch data. This method evaluates the different events streamed from MySQL
@@ -1423,6 +1435,8 @@ class mysql_source(object):
                                 global_data["action"] = "insert"
                                 event_after=row["values"]
                             # TODO: convert live replica fields here.
+                            event_before = self.convert_row_data(event_before, destination_schema, table_name, schema_row)
+                            event_after = self.convert_row_data(event_after, destination_schema, table_name, schema_row)
                             for column_name in event_after:
                                 try:
                                     column_type=column_map[column_name]
