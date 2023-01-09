@@ -648,6 +648,7 @@ class mysql_source(object):
             csv_results = self.cursor_unbuffered.fetchmany(copy_limit)
             if len(csv_results) == 0:
                 break
+            # TODO: insert convert logic here
             csv_data="\n".join(d[0] for d in csv_results )
 
             if self.copy_mode == 'direct':
@@ -1424,7 +1425,7 @@ class mysql_source(object):
                             elif skip_event[1] == "insert":
                                 global_data["action"] = "insert"
                                 event_after=row["values"]
-
+                            # TODO: convert live replica fields here.
                             for column_name in event_after:
                                 try:
                                     column_type=column_map[column_name]
