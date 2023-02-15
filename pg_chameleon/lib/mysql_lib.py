@@ -1435,9 +1435,7 @@ class mysql_source(object):
                 convert_dict = {
                     k: getattr(convert_functions, v) for k, v in _table.items()
                 }
-                print(row)
                 row = {k: convert_dict.get(k,lambda x:x)(v) for k,v in row.items()}
-                print(row)
         return row
 
     def __read_replica_stream(self, batch_data):
