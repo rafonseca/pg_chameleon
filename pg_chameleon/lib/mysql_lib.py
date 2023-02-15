@@ -670,16 +670,21 @@ class mysql_source(object):
             row: tuple, column_names: list[str], convert: dict[str, Callable]
         ) -> list:
             return  [
-                convert[column](value) if column in convert else value
-                for value, column in zip(row, column_names)
+                convert.get(column,lambda x:x)(value)
+                for column, value in zip(column_names, row)
             ]
-
+        import csv
         def apply_row_conversion(row, column_names: list[str], convert: dict[str, Callable])->tuple:
             if copy_mode:
-                row = row[0].split(",")
+                row = next(csv.reader(row,strict=True))
+
             row = _apply_row_conversion(row,column_names,convert)
             if copy_mode:
-                row =(",".join(row),)
+
+                with io.StringIO(newline='') as iorow:
+                    csv.writer(iorow,quoting=csv.QUOTE_ALL,lineterminator="\n").writerow(row)
+                    iorow.seek(0)
+                    row=iorow.read()
             else:
                 row=tuple(row)
             return row
@@ -688,16 +693,16 @@ class mysql_source(object):
 
 
         columns = columns.replace('"', "").split(",")
-
+        convert_dict={}
         if _schema := self.convert_columns.get(source_schema):
             if _table := _schema.get(table):
                 convert_dict = {
                     k: getattr(convert_functions, v) for k, v in _table.items()
                 }
-                csv_results = [
-                    apply_row_conversion(row, columns, convert_dict)
-                    for row in csv_results
-                ]
+        csv_results = [
+            apply_row_conversion(row, columns, convert_dict)
+            for row in csv_results
+        ]
 
         #breakpoint()
         self.logger.debug("DONE convert_batch_data ")
@@ -784,11 +789,12 @@ class mysql_source(object):
             if len(csv_results) == 0:
                 break
             try:
-                # TODO: insert convert logic here
+
                 csv_results = self.convert_batch_data(
                     csv_results, schema, table, column_list, copy_mode=True
                 )
-                csv_data = "\n".join(d[0] for d in csv_results)
+
+                csv_data = "".join(csv_results)
 
                 if self.copy_mode == "direct":
                     csv_file = io.StringIO()
@@ -803,7 +809,8 @@ class mysql_source(object):
 
                 self.pg_engine.copy_data(csv_file, loading_schema, table, column_list)
                 csv_file.close()
-            except:
+            except Exception as exc:
+                print(exc)
                 self.logger.info(
                     "Table %s.%s error in PostgreSQL copy, saving slice number for the fallback to insert statements "
                     % (loading_schema, table)

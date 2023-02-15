@@ -4480,11 +4480,13 @@ class pg_engine(object):
         :param table: the table name used in the COPY FROM command
         :param column_list: A string with the list of columns to use in the COPY FROM command already quoted and comma separated
         """
-        sql_copy = (
-            "COPY \"%s\".\"%s\" (%s) FROM STDIN WITH NULL 'NULL' CSV QUOTE '\"' DELIMITER ',' ESCAPE '\"' ; "
-            % (schema, table, column_list)
-        )
-        self.pgsql_cur.copy_expert(sql_copy, csv_file)
+        sql_copy = f"COPY \"{schema}\".\"{table}\" ({column_list}) FROM STDIN WITH NULL 'NULL' CSV QUOTE '\"' DELIMITER ',' ESCAPE '\"' FORCE NULL {column_list} ; "
+
+
+        try:
+            self.pgsql_cur.copy_expert(sql_copy, csv_file)
+        except Exception as exc:
+            print(exc)
 
     def insert_data(self, schema, table, insert_data, column_list):
         """
