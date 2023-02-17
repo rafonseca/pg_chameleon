@@ -676,7 +676,7 @@ class mysql_source(object):
         import csv
         def apply_row_conversion(row, column_names: list[str], convert: dict[str, Callable])->tuple:
             if copy_mode:
-                row = next(csv.reader(row,strict=True))
+                row = next(csv.reader((r.replace('\x00', '') for r in row),strict=True))
 
             row = _apply_row_conversion(row,column_names,convert)
             if copy_mode:
