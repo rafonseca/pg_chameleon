@@ -673,7 +673,8 @@ class mysql_source(object):
                 convert.get(column,lambda x:x)(value)
                 for column, value in zip(column_names, row)
             ]
-        import csv
+        import csv, sys
+        csv.field_size_limit(sys.maxsize)
         def apply_row_conversion(row, column_names: list[str], convert: dict[str, Callable])->tuple:
             if copy_mode:
                 row = next(csv.reader((r.replace('\x00', '') for r in row),strict=True))
